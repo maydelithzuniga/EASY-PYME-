@@ -102,7 +102,7 @@ public class DashboardService {
 
 
     @Transactional(readOnly = true)
-    public DashboardSummaryDTO getSummary(Usuario usuario, LocalDateTime desde, LocalDateTime hasta) { {
+    public DashboardSummaryDTO getSummary(Usuario usuario, LocalDateTime desde, LocalDateTime hasta) {
         Long empresaId = usuario.getEmpresa().getId();
 
         if (desde==null || hasta==null){
@@ -126,17 +126,7 @@ public class DashboardService {
         List<ProductoTopVentaDTO> topProductosVendidos = ventaRepository.findTopProductosByEmpresaId(empresaId, desde, hasta, PageRequest.of(0, 5));
 
         List<ProductoAlertaDTO> productosAgotados = productoRepository.findTopByEmpresaIdAndEstadoStock(
-                        empresaId, EstadoStock.AGOTADO, PageRequest.of(0, 5))
-                .stream()
-                .map(p -> ProductoAlertaDTO.builder()
-                        .productoId(p.getProductoId())
-                        .nombre(p.getNombre())
-                        .sku(p.getSku())
-                        .stockActual(p.getStockActual())
-                        .stockMinimo(p.getStockMinimo())
-                        .estadoStock(p.getEstadoStock())
-                        .build())
-                .toList();
+                empresaId, EstadoStock.AGOTADO, PageRequest.of(0, 5));
 
         long totalProductos = productoRepository.countByEmpresaId(empresaId);
         long stockBajo = productoRepository.countByEmpresaIdAndEstadoStock(empresaId, EstadoStock.BAJO);
@@ -147,8 +137,13 @@ public class DashboardService {
                 .totalProductos(totalProductos)
                 .productosStockBajo(stockBajo)
                 .productosAgotados(agotados)
-                .VentasDelPeriodoActual(ventasDelPeriodoActual)
-                .ingresosDelMes(ingresos != null ? ingresos : BigDecimal.ZERO)
+                .ventasDelPeriodoActual(ventasDelPeriodoActual)
+                .ventasDelPeriodoAnterior(ventasPeriodoAnterior)
+                .ingresosDelPeriodo(ingresos != null ? ingresos : BigDecimal.ZERO)
+                .variacionIngresosPorcentual(variacionIngresos)
+                .valorTotalInventario(valorInventario != null ? valorInventario : BigDecimal.ZERO)
+                .topProductosVendidos(topProductosVendidos)
+                .productosAgotadosDetalle(productosAgotados)
                 .build();
     }
 
