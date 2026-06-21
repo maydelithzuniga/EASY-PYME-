@@ -22,22 +22,20 @@ public class TableService {
     private final ProductoRepository productoRepository;
     private final TableMapper tableMapper;
     private final CategoriaRepository  categoriaRepository;
-
+    private final PlantillaTablaRepository plantillaTablaRepository;
     @Transactional
     public TableResponseDTO create(TableRequestDTO request, Usuario usuario) {
+
         TablaInventario tabla = TablaInventario.builder()
                 .nombre(request.getNombre())
                 .empresa(usuario.getEmpresa())
                 .build();
 
         tablaRepository.save(tabla);
-
         List<Columna> columnas;
 
         if (request.getPlantillaId() != null) {
-            // Desde plantilla
-            TableService plantillaRepository;
-            PlantillaTabla plantilla = plantillaRepository.findById(request.getPlantillaId())
+            PlantillaTabla plantilla = plantillaTablaRepository.findById(request.getPlantillaId())
                     .orElseThrow(() -> new ResourceNotFoundException("Plantilla no encontrada"));
 
             columnas = plantilla.getColumnas().stream()

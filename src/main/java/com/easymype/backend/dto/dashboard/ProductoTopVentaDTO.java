@@ -11,10 +11,11 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DashboardSummaryDTO {
-    private long totalProductos;
-    private long productosStockBajo;
-    private long productosAgotados;
-    private long VentasDelPeriodoActual;
-    private BigDecimal ingresosDelMes;
+public class ProductoTopVentaDTO {
+
+    private Long productoId;
+    private String nombre;
+    private String sku;
+    private Long cantidadVendida;
+    private BigDecimal montoTotalVendido;
 }

@@ -1,6 +1,8 @@
 package com.easymype.backend.repository;
 
+import com.easymype.backend.dto.dashboard.ProductoTopVentaDTO;
 import com.easymype.backend.entity.Venta;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,23 @@ import java.util.Optional;
 public interface VentaRepository extends JpaRepository<Venta, Long> {
 
     List<Venta> findByEmpresaId(Long empresaId);
+
+    @Query("""
+    SELECT new com.easymype.backend.dto.dashboard.ProductoTopVentaDTO(
+        p.id, p.nombre, p.sku, SUM(dv.cantidad), SUM(dv.cantidad * dv.precioUnitario))
+    FROM DetalleVenta dv
+    JOIN dv.venta v
+    JOIN dv.producto p
+    WHERE v.empresa.id = :empresaId
+    AND v.fecha BETWEEN :inicio AND :fin
+    GROUP BY p.id, p.nombre, p.sku
+    ORDER BY SUM(dv.cantidad) DESC
+    """)
+    List<ProductoTopVentaDTO> findTopProductosByEmpresaId(
+            @Param("empresaId") Long empresaId,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin,
+            Pageable pageable);
 
     Optional<Venta> findByIdAndEmpresaId(Long id, Long empresaId);
 
