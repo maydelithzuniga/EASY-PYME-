@@ -6,5 +6,11 @@ import org.springframework.context.ApplicationEvent;
 
 @Getter
 public class StockChangedEvent extends ApplicationEvent {
+    private final Producto producto;
+
+    public StockChangedEvent(Object source, Producto producto) {
+        super(source);
+        this.producto = producto;
+    }
 
 }

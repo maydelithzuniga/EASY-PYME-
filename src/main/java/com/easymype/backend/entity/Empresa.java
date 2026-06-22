@@ -30,6 +30,9 @@ public class Empresa {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false, unique = true)
+    private String email;
+
     @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Usuario> usuarios = new ArrayList<>();

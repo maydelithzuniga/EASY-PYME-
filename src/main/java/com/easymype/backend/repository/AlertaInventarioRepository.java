@@ -16,4 +16,6 @@ public interface AlertaInventarioRepository extends JpaRepository<AlertaInventar
     Optional<AlertaInventario> findByIdAndEmpresaId(Long id, Long empresaId);
 
     boolean existsByProductoIdAndTipoAndLeidaFalse(Long productoId, TipoAlerta tipo);
+
+    List<AlertaInventario> findByProductoIdAndLeidaFalse(Long id);
 }

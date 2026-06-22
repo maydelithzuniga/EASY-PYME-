@@ -5,9 +5,11 @@ import com.easymype.backend.dto.ReglaRelacion.AccionReglaResponseDTO;
 import com.easymype.backend.dto.ReglaRelacion.ReglaRelacionRequestDTO;
 import com.easymype.backend.dto.ReglaRelacion.ReglaRelacionResponseDTO;
 import com.easymype.backend.entity.*;
+import com.easymype.backend.event.StockChangedEvent;
 import com.easymype.backend.exception.ResourceNotFoundException;
 import com.easymype.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ public class ReglaRelacionService {
     private final CeldaRepository celdaRepository;
     private final TablaInventarioRepository tablaRepository;
     private final ColumnaRepository columnaRepository;
+    private final ProductoRepository productoRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int MAX_PROFUNDIDAD = 5; // protección contra cadenas largas/cíclicas
 
@@ -68,6 +72,7 @@ public class ReglaRelacionService {
     }
 
     private void aplicarAccion(AccionRegla accion, BigDecimal deltaOrigen, Set<Long> tablasVisitadas) {
+
         List<Fila> filasDestino = obtenerFilasDestino(accion);
 
         BigDecimal cambio = accion.getModoCalculo() == ModoCalculo.PROPORCIONAL
@@ -84,7 +89,16 @@ public class ReglaRelacionService {
             celdaDestino.setValorTexto(nuevoValor.toString());
             celdaRepository.save(celdaDestino);
 
-            // Recursión: esta celda destino podría a su vez disparar otra regla
+            // NUEVO: si la celda es de tipo STOCK, sincroniza Producto y publica evento
+            if (celdaDestino.getColumna().getTipo() == TipoColumna.STOCK
+                    && celdaDestino.getFila().getProducto() != null) {
+                Producto producto = celdaDestino.getFila().getProducto();
+                producto.setStockActual(nuevoValor.intValue());
+                producto.recalcularEstadoStock();
+                productoRepository.save(producto);
+                eventPublisher.publishEvent(new StockChangedEvent(this, producto));
+            }
+
             procesarTrigger(celdaDestino, cambio, new HashSet<>(tablasVisitadas));
         }
     }

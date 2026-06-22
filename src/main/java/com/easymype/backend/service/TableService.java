@@ -2,10 +2,12 @@ package com.easymype.backend.service;
 
 import com.easymype.backend.dto.table.*;
 import com.easymype.backend.entity.*;
+import com.easymype.backend.event.StockChangedEvent;
 import com.easymype.backend.exception.ResourceNotFoundException;
 import com.easymype.backend.mapper.TableMapper;
 import com.easymype.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ public class TableService {
     private final CategoriaRepository  categoriaRepository;
     private final PlantillaTablaRepository plantillaTablaRepository;
     private final ReglaRelacionService reglaRelacionService;
+    private final ApplicationEventPublisher eventPublisher;
     @Transactional
     public TableResponseDTO create(TableRequestDTO request, Usuario usuario) {
 
@@ -145,9 +148,23 @@ public class TableService {
         celdaRepository.save(celda);
         BigDecimal valorNuevo = parseNumerico(request.getValorTexto());
 
+        // NUEVO: si la celda es de tipo STOCK, sincroniza Producto y publica evento
+        if (celda.getColumna().getTipo() == TipoColumna.STOCK
+                && celda.getFila().getProducto() != null
+                && valorAnterior != null
+                && valorNuevo != null
+                && valorAnterior.compareTo(valorNuevo) != 0) {
+
+            Producto producto = celda.getFila().getProducto();
+            producto.setStockActual(valorNuevo.intValue());
+            producto.recalcularEstadoStock();
+            productoRepository.save(producto);
+            eventPublisher.publishEvent(new StockChangedEvent(this, producto));
+        }
+
         if (valorAnterior != null && valorNuevo != null && valorAnterior.compareTo(valorNuevo) != 0) {
             BigDecimal delta = valorNuevo.subtract(valorAnterior);
-            reglaRelacionService.procesarTrigger(celda, delta, new HashSet<>()); // set vacío = inicio de cadena
+            reglaRelacionService.procesarTrigger(celda, delta, new HashSet<>());
         }
 
         return tableMapper.toCellResponse(celda);
