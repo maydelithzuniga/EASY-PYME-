@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -23,6 +25,7 @@ public class TableService {
     private final TableMapper tableMapper;
     private final CategoriaRepository  categoriaRepository;
     private final PlantillaTablaRepository plantillaTablaRepository;
+    private final ReglaRelacionService reglaRelacionService;
     @Transactional
     public TableResponseDTO create(TableRequestDTO request, Usuario usuario) {
 
@@ -118,19 +121,36 @@ public class TableService {
         return tableMapper.toRowResponse(filaRepository.save(fila));
     }
 
+    private BigDecimal parseNumerico(String valor) {
+        try {
+            return valor == null ? null : new BigDecimal(valor);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+
     @Transactional
     public CellResponseDTO updateCell(Long cellId, CellUpdateDTO request, Usuario usuario) {
         Celda celda = celdaRepository.findById(cellId)
                 .orElseThrow(() -> new ResourceNotFoundException("Celda con id=" + cellId + " no encontrada"));
 
-        // Validación multi-tenant: la celda debe pertenecer a la empresa del usuario
         Long empresaIdCelda = celda.getFila().getTabla().getEmpresa().getId();
         if (!empresaIdCelda.equals(usuario.getEmpresa().getId())) {
             throw new ResourceNotFoundException("Celda con id=" + cellId + " no encontrada");
         }
 
+        BigDecimal valorAnterior = parseNumerico(celda.getValorTexto());
         celda.setValorTexto(request.getValorTexto());
-        return tableMapper.toCellResponse(celdaRepository.save(celda));
+        celdaRepository.save(celda);
+        BigDecimal valorNuevo = parseNumerico(request.getValorTexto());
+
+        if (valorAnterior != null && valorNuevo != null && valorAnterior.compareTo(valorNuevo) != 0) {
+            BigDecimal delta = valorNuevo.subtract(valorAnterior);
+            reglaRelacionService.procesarTrigger(celda, delta, new HashSet<>()); // set vacío = inicio de cadena
+        }
+
+        return tableMapper.toCellResponse(celda);
     }
 
     private TablaInventario getTablaOrThrow(Long id, Long empresaId) {

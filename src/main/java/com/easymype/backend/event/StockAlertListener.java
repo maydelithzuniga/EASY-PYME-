@@ -33,37 +33,41 @@ public class StockAlertListener {
 
     private void generarAlertaSiNecesario(Producto producto, Empresa empresa, String emailDestino) {
         if (producto.getEstadoStock() == EstadoStock.AGOTADO) {
-            String mensaje = String.format(
-                    "El producto '%s' (SKU: %s) está AGOTADO.",
-                    producto.getNombre(), producto.getSku());
-            AlertaInventario alerta = AlertaInventario.builder()
-                    .producto(producto)
-                    .empresa(empresa)
-                    .tipo(TipoAlerta.STOCK_AGOTADO)
-                    .mensaje(mensaje)
-                    .leida(false)
-                    .build();
-            alertaRepository.save(alerta);
-            emailService.sendStockAlertEmail(emailDestino, producto.getNombre(),
-                    producto.getSku(), TipoAlerta.STOCK_AGOTADO, mensaje);
-            log.warn("Alerta STOCK_AGOTADO generada para producto id={}", producto.getId());
+            generarYEnviarAlerta(producto, empresa, emailDestino, TipoAlerta.STOCK_AGOTADO,
+                    String.format("El producto '%s' (SKU: %s) está AGOTADO.",
+                            producto.getNombre(), producto.getSku()));
 
         } else if (producto.getEstadoStock() == EstadoStock.BAJO) {
-            String mensaje = String.format(
-                    "El producto '%s' (SKU: %s) tiene stock bajo: %d unidades (mínimo: %d).",
-                    producto.getNombre(), producto.getSku(),
-                    producto.getStockActual(), producto.getStockMinimo());
-            AlertaInventario alerta = AlertaInventario.builder()
-                    .producto(producto)
-                    .empresa(empresa)
-                    .tipo(TipoAlerta.STOCK_BAJO)
-                    .mensaje(mensaje)
-                    .leida(false)
-                    .build();
-            alertaRepository.save(alerta);
-            emailService.sendStockAlertEmail(emailDestino, producto.getNombre(),
-                    producto.getSku(), TipoAlerta.STOCK_BAJO, mensaje);
-            log.warn("Alerta STOCK_BAJO generada para producto id={}", producto.getId());
+            generarYEnviarAlerta(producto, empresa, emailDestino, TipoAlerta.STOCK_BAJO,
+                    String.format("El producto '%s' (SKU: %s) tiene stock bajo: %d unidades (mínimo: %d).",
+                            producto.getNombre(), producto.getSku(),
+                            producto.getStockActual(), producto.getStockMinimo()));
         }
+    }
+
+    private void generarYEnviarAlerta(Producto producto, Empresa empresa, String emailDestino,
+                                      TipoAlerta tipo, String mensaje) {
+        boolean yaExisteAlertaActiva = alertaRepository
+                .existsByProductoIdAndTipoAndLeidaFalse(producto.getId(), tipo);
+
+        if (yaExisteAlertaActiva) {
+            log.info("Alerta {} ya existe y está sin leer para producto id={}, se omite duplicado",
+                    tipo, producto.getId());
+            return;
+        }
+
+        AlertaInventario alerta = AlertaInventario.builder()
+                .producto(producto)
+                .empresa(empresa)
+                .tipo(tipo)
+                .mensaje(mensaje)
+                .leida(false)
+                .build();
+        alertaRepository.save(alerta);
+
+        emailService.sendStockAlertEmail(emailDestino, producto.getNombre(),
+                producto.getSku(), tipo, mensaje);
+
+        log.warn("Alerta {} generada para producto id={}", tipo, producto.getId());
     }
 }

@@ -1,8 +1,7 @@
 package com.easymype.backend.service;
 
 import com.easymype.backend.dto.alert.AlertResponseDTO;
-import com.easymype.backend.entity.AlertaInventario;
-import com.easymype.backend.entity.Usuario;
+import com.easymype.backend.entity.*;
 import com.easymype.backend.exception.ResourceNotFoundException;
 import com.easymype.backend.mapper.AlertMapper;
 import com.easymype.backend.repository.AlertaInventarioRepository;
@@ -43,4 +42,5 @@ public class AlertService {
         return alertaRepository.findByIdAndEmpresaId(id, empresaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Alerta con id=" + id + " no encontrada"));
     }
+
 }

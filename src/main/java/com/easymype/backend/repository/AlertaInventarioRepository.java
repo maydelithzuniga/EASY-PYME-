@@ -1,6 +1,7 @@
 package com.easymype.backend.repository;
 
 import com.easymype.backend.entity.AlertaInventario;
+import com.easymype.backend.entity.TipoAlerta;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,4 +14,6 @@ public interface AlertaInventarioRepository extends JpaRepository<AlertaInventar
     List<AlertaInventario> findByEmpresaIdOrderByCreatedAtDesc(Long empresaId);
 
     Optional<AlertaInventario> findByIdAndEmpresaId(Long id, Long empresaId);
+
+    boolean existsByProductoIdAndTipoAndLeidaFalse(Long productoId, TipoAlerta tipo);
 }

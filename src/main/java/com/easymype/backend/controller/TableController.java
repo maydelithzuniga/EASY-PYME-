@@ -20,6 +20,15 @@ public class TableController {
 
     private final TableService tableService;
 
+    @PatchMapping("/cells/{cellId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<CellResponseDTO> updateCell(
+            @PathVariable Long cellId,
+            @Valid @RequestBody CellUpdateDTO request,
+            @AuthenticationPrincipal Usuario usuario) {
+        return ResponseEntity.ok(tableService.updateCell(cellId, request, usuario));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<TableResponseDTO> create(
@@ -57,8 +66,7 @@ public class TableController {
     @PostMapping("/{id}/rows")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RowResponseDTO> addRow(
-            @PathVariable Long id,
-            @RequestBody RowRequestDTO request,
+            @PathVariable Long id, @Valid @RequestBody RowRequestDTO request,
             @AuthenticationPrincipal Usuario usuario) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(tableService.addRow(id, request, usuario));
